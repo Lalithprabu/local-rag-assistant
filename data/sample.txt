@@ -1,0 +1,3 @@
+Ollama lets you run large language models locally on your own machine.
+This means no API costs and full data privacy, since nothing leaves your computer.
+Retrieval-Augmented Generation, or RAG, combines a search step with a language model's generation step to produce more accurate, grounded answers.
