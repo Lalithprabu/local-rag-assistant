@@ -90,7 +90,7 @@ deepeval test run evals/test_rag.py
 |---|---|---|
 | 1. Retrieval-Augmented Generation | Done | Chunking, embedding, semantic retrieval, grounded generation |
 | 2. Agentic systems | Planned | Tool/function calling, agent loop, custom MCP server |
-| 3. Evaluation & safety | In progress | Faithfulness, relevancy, and hallucination-refusal tests via DeepEval |
+| 3. Evaluation & safety | Done | Faithfulness, relevancy, and hallucination-refusal tests via DeepEval |
 | 4. Integration & polish | Planned | Real external API integration, tagged releases |
 
 ## Progress log
@@ -99,6 +99,7 @@ deepeval test run evals/test_rag.py
 |---|---|
 | 2026-09-22 | RAG pipeline working end-to-end (ingest + retrieve + generate), fully local |
 | 2026-09-23 | Automated evaluation suite added: faithfulness, relevancy, safety checks |
+| 2026-09-23 | Full eval suite passing (3/3): switched faithfulness check from DeepEval's built-in metric to GEval after the built-in metric gave unreliable scores with the local judge model |
 
 ## What I learned building this
 

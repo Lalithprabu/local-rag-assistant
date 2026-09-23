@@ -153,6 +153,79 @@ sequenceDiagram
 
 **Why the judge model matters:** `FaithfulnessMetric` and `AnswerRelevancyMetric` don't use simple string matching — they use an LLM to *reason* about whether the answer is supported by the context. `judge_model = OllamaModel(model="llama3.2", base_url="http://localhost:11434")` points that reasoning step at the same local model already running, so evaluation costs nothing and needs no external API key.
 
+## 5a. Evaluation notes — local judge model limitations
+
+DeepEval's metrics need an LLM to act as a "judge," reasoning about
+whether an answer is faithful and relevant. This project uses
+`llama3.2` as that judge, via Ollama, to keep the entire pipeline free
+and local. This choice has a real, observed trade-off, documented here
+rather than hidden.
+
+**What happened:** DeepEval's built-in `FaithfulnessMetric` runs an
+internal multi-step process (extract claims from the answer, check
+each claim against the retrieved context, aggregate a score). With
+`llama3.2` as the judge, this metric returned a score of `0.0` on an
+answer that was manually verified to be fully grounded in the source
+document — and the metric's own reasoning text was self-contradictory,
+stating there were "no contradictions... to justify a higher score,"
+which logically implies a *high* score, not zero.
+
+**Why this happened:** smaller local models are capable enough to
+*generate* good answers but less reliable at the more complex,
+multi-step *reasoning* required to judge answers against a rigid
+internal rubric. This is a known limitation of using lightweight
+models as evaluators, not a flaw in the RAG pipeline itself.
+
+**What was done instead:** switched to `GEval`, a DeepEval metric that
+takes a single, plain-language evaluation criterion instead of a fixed
+internal multi-step process:
+
+```python
+GEval(
+    name="Faithfulness",
+    criteria="Determine whether the actual output contains only "
+             "information that is directly supported by the retrieval "
+             "context...",
+    evaluation_params=[...],
+    threshold=0.5,
+    model=judge_model,
+)
+```
+
+On the identical test case, `GEval` returned a coherent score of `0.6`
+(above the 0.5 threshold) with reasoning that correctly matched the
+actual content of the answer.
+
+**Takeaway:** a simpler, single-criterion evaluation prompt is more
+reliable than a complex built-in metric when the judge model itself is
+small. The original `FaithfulnessMetric` code is kept, commented out,
+in `evals/test_rag.py` as a record of this finding — not deleted —
+since reproducing a known failure mode is useful documentation in
+itself. A production deployment with budget for a stronger judge model
+(GPT-4-class) could likely use the stricter built-in metric reliably.
+
+**Visually, the two approaches differ like this:**
+
+```mermaid
+flowchart LR
+    subgraph A["FaithfulnessMetric (built-in)"]
+        A1[Answer + Context] --> A2["Step 1: Extract<br/>individual claims"]
+        A2 --> A3["Step 2: Check each<br/>claim vs context"]
+        A3 --> A4["Step 3: Aggregate<br/>into one score"]
+        A4 --> A5["❌ 0.0<br/>(judge broke down<br/>mid-reasoning)"]
+    end
+
+    subgraph B["GEval (custom criteria)"]
+        B1[Answer + Context] --> B2["One direct question:<br/>'does this only use<br/>facts from context?'"]
+        B2 --> B3["✅ 0.6<br/>(coherent, correct<br/>reasoning)"]
+    end
+```
+
+The built-in metric asks a small judge model to reliably execute a
+three-step internal reasoning chain; `GEval` asks it to answer one
+plain question. Fewer reasoning steps for the judge model means fewer
+places for a weaker model to lose the thread.
+
 ## 6. Configuration surface
 
 | Constant | Location | Current value | What changing it affects |
