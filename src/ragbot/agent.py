@@ -26,6 +26,19 @@ def search_documents(query: str) -> str:
         return "No relevant documents found."
     return "\n\n".join(chunks)
 
+import requests
+
+def convert_currency(amount: float, from_currency: str, to_currency: str) -> str:
+    """Convert an amount between currencies using live exchange rates."""
+    try:
+        url = f"https://api.frankfurter.app/latest?amount={amount}&from={from_currency}&to={to_currency}"
+        response = requests.get(url, timeout=5)
+        data = response.json()
+        converted = data["rates"][to_currency]
+        return f"{amount} {from_currency} = {converted} {to_currency}"
+    except Exception as e:
+        return f"Error converting currency: {e}"
+
 TOOLS = [
     {
         "type": "function",
@@ -61,6 +74,23 @@ TOOLS = [
             },
         },
     },
+    {
+       "type": "function",
+       "function": {
+           "name": "convert_currency",
+           "description": "Convert an amount of money from one currency to another using live exchange rates. Use this when a customer asks about prices in a different currency.",
+           "parameters": {
+               "type": "object",
+               "properties": {
+                   "amount": {"type": "number", "description": "The amount to convert"},
+                   "from_currency": {"type": "string", "description": "3-letter currency code, e.g. USD"},
+                   "to_currency": {"type": "string", "description": "3-letter currency code, e.g. EUR"},
+               },
+               "required": ["amount", "from_currency", "to_currency"],
+           },
+
+       },
+    },   
 ]
 
 import re
@@ -84,6 +114,7 @@ def run_agent(question: str) -> str:
     if looks_like_math(question):
         tools_to_offer.append(TOOLS[0])  # calculator
     tools_to_offer.append(TOOLS[1])  # always offer document search
+    tools_to_offer.append(TOOLS[2])  # always offer currency conversion
     response = ollama.chat(model=MODEL, messages=messages, tools=tools_to_offer)
     message = response["message"]
 
@@ -100,6 +131,10 @@ def run_agent(question: str) -> str:
                 print(f"[Agent decided to search documents with: {args['query']}]")
                 result = search_documents(args["query"])
                 print(f"[Search returned: {result[:100]}...]")
+            elif name == "convert_currency":
+                print(f"[Agent decided to convert currency: {args}]")
+                result = convert_currency(args["amount"], args["from_currency"], args["to_currency"])
+                print(f"[Currency conversion returned: {result}]")
             else:
                 result = f"Unknown tool: {name}"
 

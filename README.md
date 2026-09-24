@@ -89,7 +89,7 @@ deepeval test run evals/test_rag.py
 | Phase | Status | Description |
 |---|---|---|
 | 1. Retrieval-Augmented Generation | Done | Chunking, embedding, semantic retrieval, grounded generation |
-| 2. Agentic systems | Planned | Tool/function calling, agent loop, custom MCP server |
+| 2. Agentic systems | Done | Tool/function calling, agent loop, custom MCP server |
 | 3. Evaluation & safety | Done | Faithfulness, relevancy, and hallucination-refusal tests via DeepEval |
 | 4. Integration & polish | Planned | Real external API integration, tagged releases |
 
