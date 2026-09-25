@@ -3,7 +3,7 @@ agent.py — a minimal agent that can decide to use a calculator tool
 before answering, using Ollama's function-calling support.
 """
 
-from retrieve import retrieve_chunks
+from ragbot.retrieve import retrieve_chunks
 import ollama
 
 MODEL = "llama3.2"
