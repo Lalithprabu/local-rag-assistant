@@ -146,6 +146,34 @@ def run_agent(question: str) -> str:
         final = ollama.chat(model=MODEL, messages=messages)
         return final["message"]["content"]
 
+    import json as _json
+
+    content = message["content"].strip()
+    if content.startswith("{") and '"name"' in content:
+        try:
+            fake_call = _json.loads(content)
+            name = fake_call.get("name")
+            args = fake_call.get("parameters", {})
+            print(f"[Recovered malformed tool call: {name} with {args}]")
+
+            if name == "search_documents":
+                result = search_documents(args.get("query", ""))
+            elif name == "calculator":
+                result = calculator(args.get("expression", ""))
+            elif name == "convert_currency":
+                result = convert_currency(
+                    args.get("amount"), args.get("from_currency"), args.get("to_currency")
+                )
+            else:
+                result = f"Unknown tool: {name}"
+
+            messages.append(message)
+            messages.append({"role": "tool", "content": result})
+            final = ollama.chat(model=MODEL, messages=messages)
+            return final["message"]["content"]
+        except (_json.JSONDecodeError, AttributeError):
+            pass
+
     print("[Agent answered directly, no tool used]")
     return message["content"]
 
